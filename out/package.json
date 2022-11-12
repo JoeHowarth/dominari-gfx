@@ -1,0 +1,13 @@
+{
+  "name": "dominari-gfx",
+  "version": "0.1.0",
+  "files": [
+    "dominari-gfx_bg.wasm",
+    "dominari-gfx.js",
+    "dominari-gfx_bg.js",
+    "dominari-gfx.d.ts"
+  ],
+  "module": "dominari-gfx.js",
+  "types": "dominari-gfx.d.ts",
+  "sideEffects": false
+}
