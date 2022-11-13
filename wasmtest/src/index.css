@@ -15,4 +15,9 @@ code {
 canvas {
     width: 1280px;
     height: 720px;
+    user-select: none;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
 }

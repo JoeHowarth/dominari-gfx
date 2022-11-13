@@ -11,17 +11,20 @@ default = ["console_error_panic_hook"]
 [dependencies]
 bevy = "0.8.1"
 getrandom = { version = "0.2", features = ["js"] }
-rand = "0.8.4"
+rand = "0.8"
 uuid = { version = "0.8", features = ["serde", "v4", "wasm-bindgen"] }
 wasm-bindgen = "0.2"
 bevy_prototype_lyon = "0.6.0"
-
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
-# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
-# code size when deploying.
+dominarisystems = { git = "https://github.com/spacemandev-git/dominari-ecs.git" }
 console_error_panic_hook = { version = "0.1.7", optional = true }
-
+bytemuck = "1.12.3"
+anchor-lang = "0.25.0"
+bevy_ecs_tilemap = { version = "0.8.0", features = ["atlas", "render"] }
+tiled = { version = "0.9", default-features = false }
+anyhow = { version = "1.0" }
+ldtk_rust = { version = "0.6" }
+env_logger = "0.9"
+serde_json = { version = "1.0" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
