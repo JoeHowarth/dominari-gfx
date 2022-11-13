@@ -1,8 +1,17 @@
+#![allow(unused_imports)]
+pub mod chain_structs;
+pub mod cursor;
+
+use anchor_lang::prelude::Pubkey;
 use bevy::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
 use bevy_prototype_lyon::prelude::*;
+use chain_structs::{
+    mock_data, CFeature, CLocation, CMetadata, COccupant, COwner, TileEntity, TileMarker,
+};
+use dominarisystems::components::ComponentFeature;
 use rand::Rng;
 use std::cell::RefCell;
-use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 
 thread_local!(static GLOBAL_MOVE_UP: RefCell<bool> = RefCell::new(false));
@@ -12,102 +21,53 @@ pub fn move_up() {
     GLOBAL_MOVE_UP.with(|text| *text.borrow_mut() = true);
 }
 
-#[derive(Component)]
-pub struct Destination {
-    id: Uuid,
-}
+pub fn create_components_from_chain_structs(mut commands: Commands) {
+    let chain_ents = mock_data();
 
-#[derive(Component, Debug)]
-pub struct TravelPath {
-    pub path: Vec<Uuid>,
-    pub current_pos: Vec2,
-}
+    info!("create system");
+    for TileEntity {
+        metadata,
+        location,
+        feature,
+        owner,
+        occupant,
+    } in chain_ents.tiles
+    {
+        let entity = commands
+            .spawn()
+            .insert_bundle((
+                TileMarker,
+                CMetadata(metadata),
+                CLocation(location),
+                COwner(owner),
+            ))
+            .id();
 
-fn get_random_f32() -> f32 {
-    return rand::thread_rng().gen_range(-400.0..400.0);
-}
-
-fn get_random_uuid() -> uuid::Uuid {
-    uuid::Uuid::new_v4()
-}
-
-pub fn update_path_closest_neighboor(
-    mut commands: Commands,
-    query: Query<(&Destination, &Transform)>,
-    mut path: ResMut<TravelPath>,
-) {
-    GLOBAL_MOVE_UP.with(|text| {
-        if *text.borrow() {
-            *text.borrow_mut() = false;
-            let path = path.as_mut();
-            let mut closest_uuid = get_random_uuid();
-            let mut closest_distance = 1000.0;
-            let mut closest_position = Vec2::default();
-            for (dest, trans) in query.iter() {
-                if !path.path.contains(&dest.id) {
-                    let new_post_3d: Vec3 = trans.translation;
-                    let new_pos = Vec2::new(new_post_3d.x, new_post_3d.y);
-                    let distance_to_current_pos = path.current_pos.distance(new_pos);
-                    if distance_to_current_pos < closest_distance {
-                        closest_distance = distance_to_current_pos;
-                        closest_uuid = dest.id;
-                        closest_position = new_pos;
-                    }
-                }
-            }
-
-            let line = shapes::Line(path.current_pos, closest_position);
-
-            commands.spawn_bundle(GeometryBuilder::build_as(
-                &line,
-                DrawMode::Stroke(StrokeMode::new(Color::BLACK, 5.0)),
-                Transform::default(),
-            ));
-
-            path.current_pos = closest_position;
-            path.path.push(closest_uuid);
-            return;
+        if let Some(feature) = feature {
+            commands.entity(entity).insert(CFeature(feature));
         }
-    });
+        if let Some(occupant) = occupant {
+            commands.entity(entity).insert(COccupant(occupant));
+        }
+    }
 }
 
-pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("icon.png"),
-        ..Default::default()
-    });
-
-    commands.spawn_bundle(Camera2dBundle::default());
-    let shape = shapes::RegularPolygon {
-        sides: 6,
-        feature: shapes::RegularPolygonFeature::Radius(10.0),
-        ..shapes::RegularPolygon::default()
-    };
-
-    commands
-        .spawn_bundle(GeometryBuilder::build_as(
-            &shape,
-            DrawMode::Outlined {
-                fill_mode: FillMode::color(Color::CYAN),
-                outline_mode: StrokeMode::new(Color::BLACK, 10.0),
-            },
-            Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-        ))
-        .with_children(|parent| {
-            for _ in 0..10 {
-                let rnd_x = get_random_f32();
-                let rnd_y = get_random_f32();
-                let mut entity = parent.spawn_bundle(GeometryBuilder::build_as(
-                    &shape,
-                    DrawMode::Outlined {
-                        fill_mode: FillMode::color(Color::CYAN),
-                        outline_mode: StrokeMode::new(Color::BLACK, 10.0),
-                    },
-                    Transform::from_translation(Vec3::new(rnd_x, rnd_y, 0.0)),
-                ));
-                entity.insert(Destination {
-                    id: get_random_uuid(),
-                });
-            }
+pub fn spawn_render_tiles(
+    mut commands: Commands,
+    q: Query<(Entity, &TileMarker, &CLocation), Without<TilemapId>>,
+    mut tile_map: Query<(Entity, &mut TileStorage)>,
+) {
+    let (tile_map, mut tile_storage) = tile_map.get_single_mut().unwrap();
+    for (tile_entity, _, loc) in &q {
+        let position = TilePos {
+            x: loc.0.x as u32,
+            y: loc.0.y as u32,
+        };
+        commands.entity(tile_entity).insert_bundle(TileBundle {
+            position,
+            tilemap_id: TilemapId(tile_map),
+            ..default()
         });
+        tile_storage.set(&position, tile_entity);
+    }
 }
