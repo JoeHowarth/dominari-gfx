@@ -1,3 +1,6 @@
+Check out the solana on-chain logic!
+https://github.com/spacemandev-git/dominari-ecs
+
 ## Quick Start
 
 ```
